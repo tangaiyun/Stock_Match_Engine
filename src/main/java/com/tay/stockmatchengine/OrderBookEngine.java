@@ -1,18 +1,21 @@
-package com.tay.stockmatchengine;
+package com.dyyt.matchengine;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class OrderBookEngine {
 	// 买委托队列
-	private TreeSet<Order> bidOffers = new TreeSet<Order>(new BidOrderComparator());
+	private final TreeSet<Order> bidOffers = new TreeSet<Order>(new BidOrderComparator());
 	// 卖委托队列
-	private TreeSet<Order> askOffers = new TreeSet<Order>(new AskOrderComparator());
+	private final TreeSet<Order> askOffers = new TreeSet<Order>(new AskOrderComparator());
 	// 成交记录队列
-	private List<ExecutedOrderHandler> executedOrderHandlers = new ArrayList<ExecutedOrderHandler>();
+	private final List<ExecutedOrderHandler> executedOrderHandlers = new ArrayList<ExecutedOrderHandler>();
 	// 委托撤销队列
-	private List<CancelledOrderHandler> cancelledOrderHandlers = new ArrayList<CancelledOrderHandler>();
+	private final List<CancelledOrderHandler> cancelledOrderHandlers = new ArrayList<CancelledOrderHandler>();
+	
+	private final AtomicReference<Double> lastBargainPrice = new AtomicReference<Double>(new Double(0));
 	
 	public void addExecutedOrderHandler(ExecutedOrderHandler eOrderHandler) {
 		executedOrderHandlers.add(eOrderHandler);
@@ -50,7 +53,37 @@ public class OrderBookEngine {
 	private synchronized void removeAskOrder(Order order) {
 		askOffers.remove(order);
 	}
-
+	
+	/**
+	 * 
+	 * @param lastPrice 最近一笔成交价
+	 * @param bidPrice 买价
+	 * @param askPrice 卖价
+	 * @return
+	 */
+	private double getDealPrice(double lastPrice, double bidPrice, double askPrice) {
+		if(lastPrice <0 || bidPrice<0 || askPrice<0 || bidPrice<askPrice) {
+			throw new java.lang.IllegalArgumentException();
+		}
+		double dealPrice = 0;
+		//当买入价等于卖出价时，成交价就是买入价或卖出价
+		if(bidPrice == askPrice) {
+			dealPrice =  bidPrice;
+		}
+		//如果前一笔成交价低于或等于卖出价，则最新成交价就是卖出价
+		else if(lastPrice <= askPrice) {
+			dealPrice =  askPrice;
+		}
+		//如果前一笔成交价高于或等于买入价，则最新成交价就是买入价
+		else if(lastPrice >= bidPrice) {
+			dealPrice =  bidPrice;
+		}
+		//如果前一笔成交价在卖出价与买入价之间，则最新成交价就是前一笔的成交价
+		else if(askPrice<lastPrice && lastPrice<bidPrice) {
+			dealPrice =  lastPrice;
+		}
+		return dealPrice;
+	}
 	/**
 	 * 接受新委托
 	 * @param order
@@ -70,8 +103,9 @@ public class OrderBookEngine {
 					// 新买方委托的数量大于当前一个卖方委托数量，此卖方委托将被完全消耗掉
 					if (inputBidQuantity >= askQuantity) {
 						inputBidQuantity = inputBidQuantity - askQuantity;
-						// 成交价格暂为买方价格和卖方价格的平均值
-						double dealPrice = (inputBidOrder.getPrice() + askOrder.getPrice()) / 2;
+						double lastPrice = lastBargainPrice.get();
+						// 计算成交价格
+						double dealPrice = getDealPrice(lastPrice, inputBidOrder.getPrice(), askOrder.getPrice());
 						// 生成成交记录
 						ExecutedOrder exeOrder = new ExecutedOrder(inputBidOrder.getCommodityCode(),
 								inputBidOrder.getTraderId(), askOrder.getTraderId(), inputBidOrder.getOrderId(),
@@ -81,11 +115,14 @@ public class OrderBookEngine {
 						}
 						// 把卖单从队列里移除
 						removeAskOrder(askOrder);
+						//更新最后成交价
+						lastBargainPrice.compareAndSet(lastPrice, dealPrice);
 					}
 					// 当前循环的卖单数量大于新进买单的数量，卖单将会被部分消耗
 					else {
-						// 成交价格暂为买方价格和卖方价格的平均值
-						double dealPrice = (inputBidOrder.getPrice() + askOrder.getPrice()) / 2;
+						double lastPrice = lastBargainPrice.get();
+						// 计算成交价格
+						double dealPrice = getDealPrice(lastPrice, inputBidOrder.getPrice(), askOrder.getPrice());
 						// 生成成交记录
 						ExecutedOrder exeOrder = new ExecutedOrder(inputBidOrder.getCommodityCode(),
 								inputBidOrder.getTraderId(), askOrder.getTraderId(), inputBidOrder.getOrderId(),
@@ -95,6 +132,8 @@ public class OrderBookEngine {
 						}
 						// 移除原有的卖单
 						removeAskOrder(askOrder);
+						//更新最后成交价
+						lastBargainPrice.compareAndSet(lastPrice, dealPrice);
 						// 把当前卖单中剩余的数目形成一个新的卖单放入卖单队列
 						int leftQuantity = askOrder.getQuantity() - inputBidQuantity;
 						Order leftAskOrder = new Order(askOrder.getOrderId(), askOrder.getTraderId(),
@@ -127,8 +166,9 @@ public class OrderBookEngine {
 					// 新卖方委托的数量大于当前一个买方委托数量，此买方委托将被完全消耗掉
 					if (inputAskQuantity >= bidQuantity) {
 						inputAskQuantity = inputAskQuantity - bidQuantity;
-						// 成交价格暂为买方价格和卖方价格的平均值
-						double dealPrice = (inputAskOrder.getPrice() + bidOrder.getPrice()) / 2;
+						double lastPrice = lastBargainPrice.get();
+						// 计算成交价格
+						double dealPrice = getDealPrice(lastPrice, bidOrder.getPrice(), inputAskOrder.getPrice());
 						// 生成成交记录
 						ExecutedOrder exeOrder = new ExecutedOrder(inputAskOrder.getCommodityCode(),
 								bidOrder.getTraderId(), inputAskOrder.getTraderId(), bidOrder.getOrderId(),
@@ -138,11 +178,14 @@ public class OrderBookEngine {
 						}
 						// 把买单从队列里移除
 						removeBidOrder(bidOrder);
+						//更新最后成交价
+						lastBargainPrice.compareAndSet(lastPrice, dealPrice);
 					}
 					// 当前循环的买单数量大于新进卖单的数量，买单将会被部分消耗
 					else {
-						// 成交价格暂为买方价格和卖方价格的平均值
-						double dealPrice = (inputAskOrder.getPrice() + bidOrder.getPrice()) / 2;
+						double lastPrice = lastBargainPrice.get();
+						// 计算成交价格
+						double dealPrice = getDealPrice(lastPrice, bidOrder.getPrice(), inputAskOrder.getPrice());
 						// 生成成交记录
 						ExecutedOrder exeOrder = new ExecutedOrder(inputAskOrder.getCommodityCode(),
 								bidOrder.getTraderId(), inputAskOrder.getTraderId(), bidOrder.getOrderId(),
@@ -152,6 +195,8 @@ public class OrderBookEngine {
 						}
 						// 移除原有的买单
 						removeBidOrder(bidOrder);
+						//更新最后成交价
+						lastBargainPrice.compareAndSet(lastPrice, dealPrice);
 						// 把当前买单中剩余的数目形成一个新的买单放入买单队列
 						int leftQuantity = bidOrder.getQuantity() - inputAskQuantity;
 						Order leftBidOrder = new Order(bidOrder.getOrderId(), bidOrder.getTraderId(),
