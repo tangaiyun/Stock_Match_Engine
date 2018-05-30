@@ -16,12 +16,12 @@ public class ExecutedOrder {
 	// 成交时间
 	private long dealTime;
 	// 成交价格
-	private double dealPrice;
+	private long dealPrice;
 	// 成交数量
 	private int quantity;
 
 	public ExecutedOrder(String commodityCode, String buyerId, String sellerId, long bidOrderId, long askOrderId,
-			long dealTime, double dealPrice, int quantity) {
+			long dealTime, long dealPrice, int quantity) {
 		this.commodityCode = commodityCode;
 		this.buyerId = buyerId;
 		this.sellerId = sellerId;
@@ -33,7 +33,7 @@ public class ExecutedOrder {
 	}
 
 	public ExecutedOrder(long executedOrderId, String commodityCode, String buyerId, String sellerId, long bidOrderId,
-			long askOrderId, long dealTime, double dealPrice, int quantity) {
+			long askOrderId, long dealTime, long dealPrice, int quantity) {
 		this.executedOrderId = executedOrderId;
 		this.commodityCode = commodityCode;
 		this.buyerId = buyerId;
@@ -69,7 +69,7 @@ public class ExecutedOrder {
 		return dealTime;
 	}
 
-	public double getDealPrice() {
+	public long getDealPrice() {
 		return dealPrice;
 	}
 
