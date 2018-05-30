@@ -10,7 +10,7 @@ public class Order {
 	// 下单时间
 	private long time;
 	// 下单价格
-	private double price;
+	private long price;
 	// 下单数量
 	private int quantity;
 	// 未成交数量
@@ -20,7 +20,7 @@ public class Order {
 	// 是否市价下单
 	private boolean isMarketPrice;
 
-	public Order(long orderId, String tradeId, String commodityCode, long time, double price, int quantity,
+	public Order(long orderId, String tradeId, String commodityCode, long time, long price, int quantity,
 			int remainedQuantity, boolean isBuy, boolean isMarketPrice) {
 		this.orderId = orderId;
 		this.traderId = tradeId;
@@ -33,7 +33,7 @@ public class Order {
 		this.isMarketPrice = isMarketPrice;
 	}
 	
-	public Order(String tradeId, String commodityCode, long time, double price, int quantity,
+	public Order(String tradeId, String commodityCode, long time, long price, int quantity,
 			int remainedQuantity, boolean isBuy, boolean isMarketPrice) {
 		this.traderId = tradeId;
 		this.commodityCode = commodityCode;
@@ -57,7 +57,7 @@ public class Order {
 		return time;
 	}
 
-	public double getPrice() {
+	public long getPrice() {
 		return price;
 	}
 
