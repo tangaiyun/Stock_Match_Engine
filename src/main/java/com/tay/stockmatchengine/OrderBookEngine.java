@@ -15,7 +15,7 @@ public class OrderBookEngine {
 	// 委托撤销队列
 	private final List<CancelledOrderHandler> cancelledOrderHandlers = new ArrayList<CancelledOrderHandler>();
 	
-	private final AtomicReference<Double> lastBargainPrice = new AtomicReference<Double>(new Double(0));
+	private final AtomicReference<Long> lastBargainPrice = new AtomicReference<Long>(new Long(0));
 	
 	public void addExecutedOrderHandler(ExecutedOrderHandler eOrderHandler) {
 		executedOrderHandlers.add(eOrderHandler);
@@ -61,11 +61,11 @@ public class OrderBookEngine {
 	 * @param askPrice 卖价
 	 * @return
 	 */
-	private double getDealPrice(double lastPrice, double bidPrice, double askPrice) {
+	private long getDealPrice(long lastPrice, long bidPrice, long askPrice) {
 		if(lastPrice <0 || bidPrice<0 || askPrice<0 || bidPrice<askPrice) {
 			throw new java.lang.IllegalArgumentException();
 		}
-		double dealPrice = 0;
+		long dealPrice = 0;
 		//当买入价等于卖出价时，成交价就是买入价或卖出价
 		if(bidPrice == askPrice) {
 			dealPrice =  bidPrice;
@@ -96,16 +96,16 @@ public class OrderBookEngine {
 			int inputBidQuantity = inputBidOrder.getQuantity();
 			double inputBidPrice = inputBidOrder.getPrice();
 			for (Order askOrder : askOffers) {
-				double askPrice = askOrder.getPrice();
+				long askPrice = askOrder.getPrice();
 				int askQuantity = askOrder.getQuantity();
 				// 买方价格大于卖方价，成交条件成立
 				if (inputBidQuantity > 0 && inputBidPrice >= askPrice) {
 					// 新买方委托的数量大于当前一个卖方委托数量，此卖方委托将被完全消耗掉
 					if (inputBidQuantity >= askQuantity) {
 						inputBidQuantity = inputBidQuantity - askQuantity;
-						double lastPrice = lastBargainPrice.get();
+						long lastPrice = lastBargainPrice.get();
 						// 计算成交价格
-						double dealPrice = getDealPrice(lastPrice, inputBidOrder.getPrice(), askOrder.getPrice());
+						long dealPrice = getDealPrice(lastPrice, inputBidOrder.getPrice(), askOrder.getPrice());
 						// 生成成交记录
 						ExecutedOrder exeOrder = new ExecutedOrder(inputBidOrder.getCommodityCode(),
 								inputBidOrder.getTraderId(), askOrder.getTraderId(), inputBidOrder.getOrderId(),
@@ -120,9 +120,9 @@ public class OrderBookEngine {
 					}
 					// 当前循环的卖单数量大于新进买单的数量，卖单将会被部分消耗
 					else {
-						double lastPrice = lastBargainPrice.get();
+						long lastPrice = lastBargainPrice.get();
 						// 计算成交价格
-						double dealPrice = getDealPrice(lastPrice, inputBidOrder.getPrice(), askOrder.getPrice());
+						long dealPrice = getDealPrice(lastPrice, inputBidOrder.getPrice(), askOrder.getPrice());
 						// 生成成交记录
 						ExecutedOrder exeOrder = new ExecutedOrder(inputBidOrder.getCommodityCode(),
 								inputBidOrder.getTraderId(), askOrder.getTraderId(), inputBidOrder.getOrderId(),
@@ -159,16 +159,16 @@ public class OrderBookEngine {
 			int inputAskQuantity = inputAskOrder.getQuantity();
 			double inputAskPrice = inputAskOrder.getPrice();
 			for (Order bidOrder : bidOffers) {
-				double bidPrice = bidOrder.getPrice();
+				long bidPrice = bidOrder.getPrice();
 				int bidQuantity = bidOrder.getQuantity();
 				// 买方价格大于卖方价，成交条件成立
 				if (inputAskQuantity > 0 && inputAskPrice <= bidPrice) {
 					// 新卖方委托的数量大于当前一个买方委托数量，此买方委托将被完全消耗掉
 					if (inputAskQuantity >= bidQuantity) {
 						inputAskQuantity = inputAskQuantity - bidQuantity;
-						double lastPrice = lastBargainPrice.get();
+						long lastPrice = lastBargainPrice.get();
 						// 计算成交价格
-						double dealPrice = getDealPrice(lastPrice, bidOrder.getPrice(), inputAskOrder.getPrice());
+						long dealPrice = getDealPrice(lastPrice, bidOrder.getPrice(), inputAskOrder.getPrice());
 						// 生成成交记录
 						ExecutedOrder exeOrder = new ExecutedOrder(inputAskOrder.getCommodityCode(),
 								bidOrder.getTraderId(), inputAskOrder.getTraderId(), bidOrder.getOrderId(),
@@ -183,9 +183,9 @@ public class OrderBookEngine {
 					}
 					// 当前循环的买单数量大于新进卖单的数量，买单将会被部分消耗
 					else {
-						double lastPrice = lastBargainPrice.get();
+						long lastPrice = lastBargainPrice.get();
 						// 计算成交价格
-						double dealPrice = getDealPrice(lastPrice, bidOrder.getPrice(), inputAskOrder.getPrice());
+						long dealPrice = getDealPrice(lastPrice, bidOrder.getPrice(), inputAskOrder.getPrice());
 						// 生成成交记录
 						ExecutedOrder exeOrder = new ExecutedOrder(inputAskOrder.getCommodityCode(),
 								bidOrder.getTraderId(), inputAskOrder.getTraderId(), bidOrder.getOrderId(),
