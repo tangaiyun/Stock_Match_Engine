@@ -12,7 +12,7 @@ public class CancelledOrder {
 	// 取消时间
 	private long time;
 	// 下单价格
-	private double price;
+	private long price;
 	// 委托数量
 	private int quantity;
 	// 未成交数量
@@ -23,7 +23,7 @@ public class CancelledOrder {
 	private boolean isMarketPrice;
 
 	public CancelledOrder(long cancelledOrderId, long orderId, String traderId, String commodityCode, long time,
-			double price, int quantity, int remainedQuantity, boolean isBuy, boolean isMarketPrice) {
+			long price, int quantity, int remainedQuantity, boolean isBuy, boolean isMarketPrice) {
 		this.cancelledOrderId = cancelledOrderId;
 		this.orderId = orderId;
 		this.traderId = traderId;
@@ -36,7 +36,7 @@ public class CancelledOrder {
 		this.isMarketPrice = isMarketPrice;
 	}
 
-	public CancelledOrder(long orderId, String traderId, String commodityCode, long time, double price, int quantity,
+	public CancelledOrder(long orderId, String traderId, String commodityCode, long time, long price, int quantity,
 			int remainedQuantity, boolean isBuy, boolean isMarketPrice) {
 		this.orderId = orderId;
 		this.traderId = traderId;
@@ -69,7 +69,7 @@ public class CancelledOrder {
 		return time;
 	}
 
-	public double getPrice() {
+	public long getPrice() {
 		return price;
 	}
 
